@@ -1,54 +1,31 @@
-# React + TypeScript + Vite
+## 🚀 Live Demo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**[Access the live application here!](https://Buutyful.github.io/FolderToPrompt/)**
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🎯 About The Project
 
-## Expanding the ESLint configuration
+When working with Large Language Models (LLMs) like ChatGPT, providing the entire context of a software project is often necessary but cumbersome. Manually opening files, copying their content, and cleaning them up is time-consuming and inefficient.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+This tool automates that entire process. It provides a clean, ChatGPT-like interface where you can upload a project folder. The application then:
+1.  Recursively reads all text-based files within the folder.
+2.  Cleans the content by removing unnecessary whitespace and empty lines to reduce token count.
+3.  Combines the structured content into a single block, with file paths as headers.
+4.  Automatically copies the final, optimized result to your clipboard.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+All processing happens client-side in your browser, ensuring your code remains private and secure.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### ✨ Key Features
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+-   📂 **Folder Upload:** Simple drag & drop or file picker for folder uploads.
+-   🔄 **Recursive Scanning:** Traverses all subdirectories to find every file.
+-   🧹 **Content Cleaning:** Automatically removes extra whitespace and empty lines to save tokens.
+-   📋 **Auto-Copy:** The final result is copied to the clipboard as soon as processing is done.
+-   🔍 **File Filtering:** Specify which file extensions to include (e.g., `js-ts-css`).
+-   🗂️ **Context History:** A sidebar shows past processing sessions for quick access.
+-   📱 **Responsive Design:** Fully usable on desktop, tablet, and mobile devices.
+-   🔒 **Private:** All file processing is done in your browser. Nothing is uploaded to a server.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+---
+
