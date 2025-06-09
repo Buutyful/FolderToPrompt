@@ -31,9 +31,7 @@ interface FileSystemEntry {
 interface FileSystemDirectoryReader {
   readEntries(callback: (entries: FileSystemEntry[]) => void, errorCallback?: (error: Error) => void): void;
 }
-interface DataTransferItem {
-  webkitGetAsEntry(): FileSystemEntry | null;
-}
+
 
 
 // --- Helper Functions for File Processing ---
