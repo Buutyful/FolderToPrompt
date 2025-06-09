@@ -19,8 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-// NOTE: Component-local type declarations for FileSystemEntry have been removed 
-// as they are now handled globally and correctly by the update in `src/vite-env.d.ts`.
+// --- Type Definitions for File System Access API ---
 interface FileSystemEntry {
   isFile: boolean;
   isDirectory: boolean;
@@ -72,8 +71,11 @@ const cleanContent = (content: string): string => {
       .trim();
 };
 
+
 // --- Child Components ---
 
+// UPDATED: Reverted Sidebar to a simple component that renders a div.
+// It is no longer concerned with its container type (<aside>) or layout classes.
 interface SidebarProps {
     contexts: Context[];
     activeContext: Context | null;
@@ -84,8 +86,8 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ contexts, activeContext, onSelectContext, onNewContext, onDeleteContext, onClose }) => (
-    <div className="bg-sidebar text-sidebar-foreground flex h-full flex-col">
-        <div className="flex items-center justify-between border-b border-sidebar-border p-4">
+    <div className="bg-sidebar text-sidebar-foreground flex h-full flex-col border-r border-border">
+        <div className="flex items-center justify-between p-4">
             <Button variant="outline" className="w-full justify-start bg-transparent text-sidebar-foreground hover:bg-sidebar-accent" onClick={onNewContext}>
                 <Plus /> New Context
             </Button>
@@ -207,7 +209,6 @@ interface ResultsViewProps {
     content: string;
     onCopyToClipboard: () => void;
     copied: boolean;
-    // NEW PROP: Add a handler to start a new upload
     onStartOver: () => void;
 }
 
@@ -216,7 +217,6 @@ const ResultsView: FC<ResultsViewProps> = ({ content, onCopyToClipboard, copied,
         <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-lg font-medium text-foreground">Processed Content</h3>
             <div className="flex items-center gap-2">
-                {/* NEW: "Process Another" button to return to the welcome screen */}
                 <Button variant="outline" onClick={onStartOver}>
                     <Upload /> Process Another
                 </Button>
@@ -248,23 +248,19 @@ const FolderProcessorApp: FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Promise-based recursive file reader
     const getFilesInDirectory = async (entry: FileSystemEntry): Promise<File[]> => {
         const files: File[] = [];
-
         if (entry.isFile) {
             return new Promise((resolve, reject) => {
                 entry.file(file => {
-                     // Manually add webkitRelativePath for consistency
                     Object.defineProperty(file, 'webkitRelativePath', {
-                        value: entry.fullPath.substring(1), // remove leading '/'
+                        value: entry.fullPath.substring(1),
                         writable: true,
                     });
                     resolve([file]);
                 }, reject);
             });
         }
-        
         if (entry.isDirectory) {
             const dirReader = entry.createReader();
             const readEntries = () => new Promise<FileSystemEntry[]>((resolve) => dirReader.readEntries(resolve));
@@ -275,12 +271,10 @@ const FolderProcessorApp: FC = () => {
                     const nestedFiles = await Promise.all(filePromises);
                     files.push(...nestedFiles.flat());
                 } else {
-                    // If not recursive, we just need to read files at this level
                     const filePromises = entries.filter(e => e.isFile).map(getFilesInDirectory);
                     const nestedFiles = await Promise.all(filePromises);
                     files.push(...nestedFiles.flat());
                 }
-                // Stop reading further if not recursive
                 if (!isRecursive) break;
                 entries = await readEntries();
             }
@@ -288,9 +282,8 @@ const FolderProcessorApp: FC = () => {
         return files;
     };
     
-    // Core processing logic
-    const processDroppedItems = async (items: DataTransferItem[]): Promise<File[]> => {
-        const entries = items.map(item => item.webkitGetAsEntry()).filter(Boolean) as FileSystemEntry[];
+    const processDroppedItems = async (items: DataTransferItemList): Promise<File[]> => {
+        const entries = Array.from(items).map(item => item.webkitGetAsEntry()).filter(Boolean) as unknown as FileSystemEntry[];
         const filePromises = entries.map(getFilesInDirectory);
         const nestedFiles = await Promise.all(filePromises);
         return nestedFiles.flat();
@@ -300,7 +293,6 @@ const FolderProcessorApp: FC = () => {
         if (files.length === 0) return;
         setIsProcessing(true);
         setProcessedContent('Processing...');
-
         try {
             const processedFiles: ProcessedFile[] = [];
             for (const file of files) {
@@ -317,17 +309,14 @@ const FolderProcessorApp: FC = () => {
                     });
                 }
             }
-
             const output = processedFiles
                 .sort((a, b) => a.path.localeCompare(b.path))
                 .map(file => `// File: ${file.path}\n\n${file.content}`)
                 .join('\n\n---\n\n');
-
             setProcessedContent(output);
             await navigator.clipboard.writeText(output);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-
             const folderName = (files[0] as any).webkitRelativePath?.split('/')[0] || `Context ${contexts.length + 1}`;
             const newContext: Context = {
                 id: Date.now(),
@@ -339,7 +328,6 @@ const FolderProcessorApp: FC = () => {
             };
             setContexts(prev => [newContext, ...prev]);
             setActiveContext(newContext);
-
         } catch (error) {
             console.error('Error processing files:', error);
             setProcessedContent(`Error: Could not process files. ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -348,11 +336,10 @@ const FolderProcessorApp: FC = () => {
         }
     }, [filters, isRecursive, contexts.length]);
 
-    // Event Handlers
     const handleDrop = useCallback(async (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        const items = Array.from(e.dataTransfer.items) as DataTransferItem[];
+        const items = e.dataTransfer.items;
         const files = await processDroppedItems(items);
         await processAndSetFiles(files);
     }, [processAndSetFiles]);
@@ -362,7 +349,6 @@ const FolderProcessorApp: FC = () => {
         if (files.length > 0) {
             processAndSetFiles(files);
         }
-        // Reset file input to allow uploading the same folder again
         if (e.target) e.target.value = '';
     };
     
@@ -399,37 +385,34 @@ const FolderProcessorApp: FC = () => {
 
     return (
         <div className="flex h-screen w-screen bg-background text-foreground overflow-hidden">
-            {/* Mobile Sidebar */}
+            {/* Mobile Sidebar Modal */}
             {isSidebarOpen && (
-                 <div className="absolute inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-                    <div className="fixed inset-0 bg-black/60" onClick={() => setIsSidebarOpen(false)}></div>
+                 <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+                    <div className="fixed inset-0 bg-black/60" aria-hidden="true" onClick={() => setIsSidebarOpen(false)}></div>
                     <div className="fixed inset-y-0 left-0 h-full w-full max-w-xs">
                         <Sidebar {...sidebarProps} onClose={() => setIsSidebarOpen(false)} />
                     </div>
                 </div>
             )}
+
             {/* Desktop Sidebar */}
-            <aside className="hidden w-72 flex-shrink-0 border-r border-border lg:flex">
+            <aside className="hidden w-72 flex-shrink-0 lg:flex">
                 <Sidebar {...sidebarProps} />
             </aside>
             
-            {/* Main Content */}
             <main className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-16 items-center border-b border-border bg-card px-4 sm:px-6">
-                    <Button variant="ghost" size="icon" className="mr-2 lg:hidden" onClick={() => setIsSidebarOpen(true)}>
+                {/* Non-scrolling top bar for mobile menu and loader */}
+                    <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setIsSidebarOpen(true)}>
                         <Menu />
                     </Button>
-                    <div className="flex-1">
-                        <h1 className="text-xl font-bold">Contextual Code Formatter</h1>
-                    </div>
                     {isProcessing && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <span>Processing...</span>
                         </div>
                     )}
-                </header>
-
+               
+                {/* Main scrollable content area */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                     {!activeContext ? (
                         <WelcomeScreen
@@ -453,12 +436,10 @@ const FolderProcessorApp: FC = () => {
                 </div>
             </main>
 
-            {/* CORRECTED INPUT ELEMENT */}
             <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                // This attribute is now recognized by TypeScript thanks to vite-env.d.ts
                 webkitdirectory="true"
                 onChange={handleFileChange}
                 className="hidden"
